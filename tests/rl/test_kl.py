@@ -1,9 +1,10 @@
-"""Monte Carlo checks of the bias of Schulman's KL estimators.
+"""Checks of Schulman's KL estimators: bias of the value and of the gradient.
 
 The exact KL between two categorical distributions is available in closed
 form (``torch.distributions.kl_divergence`` is used as an independent
 reference), so the estimators can be checked against the truth rather than
-against each other.
+against each other: the value by Monte Carlo, and the expected gradient of
+each estimator used as a loss term exactly, by summing over the support.
 """
 
 import pytest
@@ -101,6 +102,54 @@ def test_all_estimators_vanish_and_are_stationary_at_identical_policies(estimato
     assert torch.equal(value.detach(), torch.zeros_like(value))
     if estimator != "k1":  # d k1 / d logp = 1: k1 is not minimised pointwise at equality.
         torch.testing.assert_close(grad, torch.zeros_like(grad))
+
+
+def _expected_penalty_gradient(estimator: str, logits: torch.Tensor, ref: torch.Tensor):
+    """Exact E_{x ~ pi}[grad_theta k(x)] for pi = softmax(theta), samples held fixed.
+
+    Summing over the support with the sampling weights detached is exactly
+    what averaging ``kl_estimate`` over infinitely many on-policy samples and
+    backpropagating gives: the gradient flows only through ``log pi(x)``.
+    """
+    theta = logits.clone().requires_grad_(True)
+    log_pi = torch.log_softmax(theta, -1)
+    weights = log_pi.detach().exp()
+    penalty = (weights * kl_estimate(log_pi, ref.log(), estimator)).sum()
+    (grad,) = torch.autograd.grad(penalty, theta)
+    return grad
+
+
+def _exact_kl_gradient(logits: torch.Tensor, ref: torch.Tensor, direction: str):
+    theta = logits.clone().requires_grad_(True)
+    pi = Categorical(logits=theta)
+    other = Categorical(probs=ref)
+    kl = kl_divergence(pi, other) if direction == "pi||ref" else kl_divergence(other, pi)
+    (grad,) = torch.autograd.grad(kl, theta)
+    return grad
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_expected_gradients_of_estimators_used_as_loss_terms(seed):
+    """Value bias and gradient bias rank the estimators differently.
+
+    As differentiated penalties: k1 has zero expected gradient, k2 gives the
+    exact gradient of KL(pi || ref) and k3 that of KL(ref || pi).
+    """
+    gen = torch.Generator().manual_seed(seed)
+    logits = 2 * torch.randn(6, generator=gen, dtype=torch.float64)
+    ref = torch.softmax(2 * torch.randn(6, generator=gen, dtype=torch.float64), -1)
+
+    grad_k1 = _expected_penalty_gradient("k1", logits, ref)
+    grad_k2 = _expected_penalty_gradient("k2", logits, ref)
+    grad_k3 = _expected_penalty_gradient("k3", logits, ref)
+    reverse = _exact_kl_gradient(logits, ref, "pi||ref")
+    forward = _exact_kl_gradient(logits, ref, "ref||pi")
+
+    torch.testing.assert_close(grad_k1, torch.zeros_like(grad_k1), atol=1e-14, rtol=0)
+    torch.testing.assert_close(grad_k2, reverse, atol=1e-12, rtol=0)
+    torch.testing.assert_close(grad_k3, forward, atol=1e-12, rtol=0)
+    # The two KL directions have different gradients here, so k3 is not k2.
+    assert (reverse - forward).abs().max() > 1e-2
 
 
 def test_unknown_estimator_raises():

@@ -12,7 +12,9 @@ CONFIGS = {
     "grpo": PolicyLossConfig.grpo(),
     "dapo": PolicyLossConfig.dapo(),
     "dr_grpo": PolicyLossConfig.dr_grpo(),
-    "grpo_k1": PolicyLossConfig(normalization="sequence", beta=0.1, kl_estimator="k1"),
+    # k1 is not a useful penalty (zero expected gradient on-policy, see
+    # posttrain.rl.kl); this configuration only exercises the k1 code path.
+    "seq_k1_code_path": PolicyLossConfig(normalization="sequence", beta=0.1, kl_estimator="k1"),
     "token_k2": PolicyLossConfig(normalization="token", beta=0.3, kl_estimator="k2"),
 }
 

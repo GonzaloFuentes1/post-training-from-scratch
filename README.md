@@ -148,7 +148,22 @@ The KL penalty uses Schulman's estimators with $x \sim \pi_\theta$ and
 $r = \pi_{\text{ref}}(x)/\pi_\theta(x)$: $k_1 = -\log r$ (unbiased, high
 variance, often negative), $k_2 = \frac{1}{2}(\log r)^2$ (biased, low
 variance) and $k_3 = (r - 1) - \log r$ (unbiased, non-negative, low
-variance).
+variance). Those are properties of the *value*. In the loss the estimate is
+differentiated with the samples held fixed, and on-policy the expected
+gradients rank the estimators differently:
+
+| estimator | value, as an estimate of $\mathrm{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ | expected gradient as a loss term |
+|---|---|---|
+| $k_1$ | unbiased | $0$: zero-mean noise, no regularization |
+| $k_2$ | biased | $\nabla\mathrm{KL}(\pi_\theta \Vert \pi_{\text{ref}})$, unbiased |
+| $k_3$ | unbiased | $\nabla\mathrm{KL}(\pi_{\text{ref}} \Vert \pi_\theta)$, the other direction |
+
+GRPO's $k_3$ penalty therefore still pulls the policy towards the reference,
+but through the gradient of $\mathrm{KL}(\pi_{\text{ref}} \Vert \pi_\theta)$,
+not of the KL its value estimates. `PolicyLossConfig.grpo()` keeps $k_3$ to
+stay faithful to DeepSeekMath. The derivation is in the docstring of
+`posttrain/rl/kl.py`; Tang and Munos (2025) analyze these pitfalls in
+detail, including the sequence-level case.
 
 ## Design notes
 
@@ -193,6 +208,7 @@ suite on Python 3.11 and 3.12). Highlights:
 | prompt and pad tokens, even when set to `-inf`, change neither loss nor gradient | `tests/rl/test_losses.py` |
 | advantages sum to zero per group, are invariant to per-group reward offsets, and constant groups give 0, not NaN | `tests/rl/test_advantages.py` |
 | k1 and k3 are unbiased and k2 is biased, by Monte Carlo (400k samples) against the exact KL between categorical distributions | `tests/rl/test_kl.py` |
+| used as loss terms, the exact expected gradients of k1, k2 and k3 are $0$, $\nabla\mathrm{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ and $\nabla\mathrm{KL}(\pi_{\text{ref}} \Vert \pi_\theta)$ on categorical distributions | `tests/rl/test_kl.py` |
 | DPO gradient w.r.t. the policy log-ratio equals $-\beta\sigma(-\beta m)$ with the correct sign for chosen, rejected and reference terms | `tests/preference/test_losses.py` |
 | conservative DPO is stationary at $m^*$; IPO penalises overshooting its target; SimPO equals DPO on average log-probs for any reference that cannot tell the pair apart, and is invariant to repeating a response | `tests/preference/test_losses.py` |
 | packed loss and all parameter gradients of a float64 transformer equal the unpacked sum (atol 1e-10); a plain causal mask or no position reset breaks this | `tests/sft/test_packed_equivalence.py` |
@@ -240,6 +256,7 @@ a learning signal end to end; it is not evidence about RL at scale.
 - Liu et al., *Understanding R1-Zero-Like Training: A Critical Perspective* (Dr.GRPO), 2025. [arXiv:2503.20783](https://arxiv.org/abs/2503.20783)
 - Schulman et al., *Proximal Policy Optimization Algorithms*, 2017. [arXiv:1707.06347](https://arxiv.org/abs/1707.06347)
 - Schulman, *Approximating KL Divergence*, 2020. [joschu.net/blog/kl-approx.html](http://joschu.net/blog/kl-approx.html)
+- Tang and Munos, *On a few pitfalls in KL divergence gradient estimation for RL*, 2025. [arXiv:2506.09477](https://arxiv.org/abs/2506.09477)
 - Krell et al., *Efficient Sequence Packing without Cross-contamination: Accelerating Large Language Models without Impacting Performance*, 2021. [arXiv:2107.02027](https://arxiv.org/abs/2107.02027)
 - Dósa, *The Tight Bound of First Fit Decreasing Bin-Packing Algorithm Is FFD(I) <= 11/9 OPT(I) + 6/9*, 2007.
 
