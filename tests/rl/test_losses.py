@@ -149,7 +149,7 @@ def test_sequence_normalization_has_length_bias_that_dr_grpo_removes():
     )
     torch.testing.assert_close(grad[0, :2], torch.full((2,), -1 / (2 * 2), dtype=torch.float64))
     torch.testing.assert_close(grad[1, :6], torch.full((6,), -1 / (2 * 6), dtype=torch.float64))
-    assert grad[0, 0] / grad[1, 0] == pytest.approx(3.0)
+    assert (grad[0, 0] / grad[1, 0]).item() == pytest.approx(3.0)
 
     grad, mask = _on_policy_token_weights(PolicyLossConfig.dr_grpo(), advantages, lengths)
     torch.testing.assert_close(grad[mask], torch.full((8,), -1 / (2 * 8), dtype=torch.float64))
@@ -167,7 +167,7 @@ def test_sequence_normalization_penalises_long_wrong_answers_less_per_token():
 
     # Gradient descent lowers log-probs proportionally to these weights; the long
     # wrong answer is discouraged three times less per token.
-    assert grad[0, 0] == pytest.approx(3 * grad[1, 0])
+    assert grad[0, 0].item() == pytest.approx(3 * grad[1, 0].item())
     assert grad[1, 0] > 0
 
 
