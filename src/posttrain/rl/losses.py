@@ -56,7 +56,11 @@ class PolicyLossConfig:
             ``eps_low`` so that low-probability tokens with positive advantage
             can grow faster, which counteracts entropy collapse.
         beta: Weight of the per-token KL penalty to the reference policy.
-        kl_estimator: Which Schulman estimator implements the penalty.
+        kl_estimator: Which Schulman estimator implements the penalty. As a
+            differentiated loss term, ``"k1"`` has zero expected gradient
+            on-policy, ``"k2"`` gives the gradient of ``KL(pi || pi_ref)`` and
+            ``"k3"`` (the GRPO choice) that of ``KL(pi_ref || pi)``; see
+            :mod:`posttrain.rl.kl`.
         scale_advantages_by_std: Whether group advantages are divided by the
             group std. The loss does not use it; it is kept here so that one
             object fully describes a recipe.
