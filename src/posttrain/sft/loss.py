@@ -54,7 +54,7 @@ def causal_lm_loss(
     Args:
         logits: ``[B, T, V]`` logits aligned with ``labels`` (already shifted).
         labels: ``[B, T]`` targets, ``ignore_index`` where there is no loss.
-        num_target_tokens: Normaliser. Pass the global count from
+        num_target_tokens: Normalizer. Pass the global count from
             :func:`count_target_tokens` when accumulating gradients; when
             ``None`` the local count is used, which is only correct for a
             single micro-batch. Under DDP pass ``N_global / world_size``

@@ -192,7 +192,7 @@ def test_sequence_normalization_has_length_bias_that_dr_grpo_removes():
     torch.testing.assert_close(grad[mask], torch.full((8,), -1 / 8, dtype=torch.float64))
 
 
-def test_sequence_normalization_penalises_long_wrong_answers_less_per_token():
+def test_sequence_normalization_penalizes_long_wrong_answers_less_per_token():
     advantages = torch.tensor([-1.0, -1.0], dtype=torch.float64)
 
     grad, _ = _on_policy_token_weights(

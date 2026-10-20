@@ -58,7 +58,8 @@ def dpo_loss(
     r"""DPO loss, optionally with label smoothing (conservative DPO).
 
     With ``label_smoothing = eps`` the preference label is assumed to be flipped
-    with probability ``eps``:
+    with probability ``eps`` (conservative DPO; Mitchell, "A note on DPO with
+    noisy preferences & relationship to IPO", 2023):
 
     .. math::
 
@@ -94,8 +95,8 @@ def ipo_loss(
         \mathcal{L}_{\mathrm{IPO}} = \Big(m - \frac{1}{2\tau}\Big)^2
 
     Replacing the log-sigmoid by a square gives the margin a finite target, so
-    unlike DPO the objective penalises overshooting it. Smaller ``tau`` means a
-    larger target margin, i.e. weaker regularisation towards the reference.
+    unlike DPO the objective penalizes overshooting it. Smaller ``tau`` means a
+    larger target margin, i.e. weaker regularization towards the reference.
     The log-likelihoods are used as given; some implementations pass
     per-token averages instead of sums.
     """
@@ -114,7 +115,7 @@ def simpo_loss(
     beta: float = 2.0,
     gamma: float = 1.0,
 ) -> Tensor:
-    r"""SimPO loss (Meng et al., 2024): reference-free, length-normalised DPO.
+    r"""SimPO loss (Meng et al., 2024): reference-free, length-normalized DPO.
 
     .. math::
 
@@ -125,8 +126,8 @@ def simpo_loss(
     The inputs are *average* per-token log-probabilities (``|y|`` is already
     divided out). The implicit reward is the quantity used at generation time,
     so training and decoding rank responses the same way, and no reference
-    model has to be kept in memory. Without the length normalisation the
-    summed log-likelihood would favour short responses; ``gamma`` is a target
+    model has to be kept in memory. Without the length normalization the
+    summed log-likelihood would favor short responses; ``gamma`` is a target
     reward margin that makes the loss keep separating pairs that are already
     ranked correctly.
     """

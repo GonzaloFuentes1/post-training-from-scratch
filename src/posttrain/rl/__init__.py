@@ -1,4 +1,4 @@
-"""Group-relative policy optimisation objectives (GRPO, DAPO, Dr.GRPO)."""
+"""Group-relative policy optimization objectives (GRPO, DAPO, Dr.GRPO)."""
 
 from posttrain.rl.advantages import group_relative_advantages
 from posttrain.rl.kl import KLEstimator, kl_estimate

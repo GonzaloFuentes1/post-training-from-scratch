@@ -109,7 +109,7 @@ def test_ipo_regresses_margin_to_target():
     torch.testing.assert_close(loss.detach(), (margin.detach() - target).square())
     torch.testing.assert_close(grad, 2 * (margin.detach() - target))
     assert loss[1].item() == 0.0
-    # Overshooting the target is penalised; DPO would keep rewarding it.
+    # Overshooting the target is penalized; DPO would keep rewarding it.
     assert loss[2] > loss[1]
     dpo = dpo_loss(margin.detach(), zeros, zeros, zeros, beta=1.0)
     assert dpo[2] < dpo[1]

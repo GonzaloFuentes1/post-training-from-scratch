@@ -4,9 +4,9 @@
 
 From-scratch PyTorch implementations of the objectives used to post-train
 large language models: SFT with sequence packing and loss masking, offline
-preference optimisation (DPO, conservative DPO, IPO, SimPO), and
+preference optimization (DPO, conservative DPO, IPO, SimPO), and
 group-relative RL (GRPO, DAPO, Dr.GRPO). Each objective is a small function
-on plain tensors with a docstring that derives it and explains the design
+on plain tensors with a docstring that states it and explains the design
 choices, and each is pinned down by invariant tests: parity against
 independent loop-based references, float64 gradchecks, analytic gradients,
 Monte Carlo bias checks, and end-to-end equivalences on a tiny transformer.
@@ -40,6 +40,7 @@ Requires Python 3.11+.
 git clone https://github.com/GonzaloFuentes1/post-training-from-scratch.git
 cd post-training-from-scratch
 uv venv --python 3.12
+source .venv/bin/activate   # Windows (Git Bash): source .venv/Scripts/activate
 uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 uv pip install -e ".[dev]"
 pytest
@@ -50,13 +51,24 @@ import torch
 from posttrain.rl import PolicyLossConfig, group_relative_advantages, policy_gradient_loss
 
 rewards = torch.tensor([1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0])  # 2 prompts x 4 samples
-cfg = PolicyLossConfig.dr_grpo()  # or .grpo(), .dapo()
+cfg = PolicyLossConfig.dr_grpo()  # or .dapo(); .grpo() also needs ref_logp=...
 adv = group_relative_advantages(rewards, group_size=4, scale_by_std=cfg.scale_advantages_by_std)
 
-# logp, old_logp: [8, T] log-probs of the sampled tokens; mask: [8, T], True on response tokens.
+# Stand-ins for model outputs: [8, T] log-probs of the sampled tokens under the
+# sampling policy (old_logp) and the current policy (logp), and a [8, T] mask
+# that is True on response tokens.
+T = 6
+old_logp = -torch.rand(8, T)
+logp = (old_logp + 0.1 * torch.randn(8, T)).requires_grad_()
+mask = torch.ones(8, T, dtype=torch.bool)
+mask[:4, 4:] = False  # the first prompt's responses are shorter
+
 out = policy_gradient_loss(logp, old_logp, adv, mask, cfg, max_tokens=T)
 out.loss.backward()
+print(out.loss.item(), out.clip_fraction.item())
 ```
+
+`tests/test_readme.py` executes this snippet, so it cannot drift from the API.
 
 ## Layout
 
@@ -84,7 +96,7 @@ examples/toy_rlvr.py   SFT warm start + RL on 2-digit addition
 ### SFT
 
 Next-token cross-entropy over target tokens only. With gradient accumulation
-over micro-batches $b$ the loss is normalised by the number of target tokens
+over micro-batches $b$ the loss is normalized by the number of target tokens
 in the whole batch, not per micro-batch:
 
 $$\mathcal{L}_{\text{SFT}} = \frac{1}{N_{\text{global}}} \sum_{b} \sum_{t \in b} -\log \pi_\theta(x_t \mid x_{<t}).$$
@@ -97,7 +109,7 @@ documents separately. In chat data only the assistant content and its
 `<|im_end|>` marker are targets; the end marker is how the model learns to
 stop.
 
-### Preference optimisation
+### Preference optimization
 
 With chosen $y_w$, rejected $y_l$ and the margin
 $m = \log\frac{\pi_\theta(y_w)}{\pi_{\text{ref}}(y_w)} - \log\frac{\pi_\theta(y_l)}{\pi_{\text{ref}}(y_l)}$:
@@ -105,9 +117,9 @@ $m = \log\frac{\pi_\theta(y_w)}{\pi_{\text{ref}}(y_w)} - \log\frac{\pi_\theta(y_
 | objective | loss | note |
 |---|---|---|
 | DPO | $-\log\sigma(\beta m)$ | $\partial\mathcal{L}/\partial m = -\beta\,\sigma(-\beta m)$, never zero |
-| conservative DPO | $-(1-\epsilon)\log\sigma(\beta m) - \epsilon\log\sigma(-\beta m)$ | stationary at $m^* = \beta^{-1}\log\frac{1-\epsilon}{\epsilon}$ |
+| conservative DPO (cDPO) | $-(1-\epsilon)\log\sigma(\beta m) - \epsilon\log\sigma(-\beta m)$ | stationary at $m^* = \beta^{-1}\log\frac{1-\epsilon}{\epsilon}$ |
 | IPO | $\left(m - \frac{1}{2\tau}\right)^2$ | regresses the margin to a finite target |
-| SimPO | $-\log\sigma\left(\frac{\beta}{\lvert y_w\rvert}\log\pi_\theta(y_w) - \frac{\beta}{\lvert y_l\rvert}\log\pi_\theta(y_l) - \gamma\right)$ | no reference model; length-normalised |
+| SimPO | $-\log\sigma\left(\frac{\beta}{\lvert y_w\rvert}\log\pi_\theta(y_w) - \frac{\beta}{\lvert y_l\rvert}\log\pi_\theta(y_l) - \gamma\right)$ | no reference model; length-normalized |
 
 DPO is the Bradley-Terry likelihood under the implicit reward
 $r(y) = \beta \log \pi_\theta(y)/\pi_{\text{ref}}(y)$. Because its gradient
@@ -130,17 +142,22 @@ scaled and how ratios are clipped:
 | | GRPO | DAPO | Dr.GRPO |
 |---|---|---|---|
 | reduction | $\frac{1}{G}\sum_i \frac{1}{\lvert o_i\rvert}\sum_t \ell_{i,t}$ | $\frac{1}{\sum_i \lvert o_i\rvert}\sum_i\sum_t \ell_{i,t}$ | $\frac{1}{G\,L_{\max}}\sum_i\sum_t \ell_{i,t}$ |
-| per-token gradient weight at $\rho = 1$ | $A_i / (G\lvert o_i\rvert)$, depends on length | $A_i / \sum_j \lvert o_j\rvert$, same for all tokens in the batch | $A_i / (G L_{\max})$, constant |
-| advantage | mean-centred, divided by std | mean-centred, divided by std | mean-centred only |
+| weight on $\nabla\log\pi_\theta(o_{i,t})$ in the objective at $\rho = 1$ | $A_i / (G\lvert o_i\rvert)$, depends on the response length | $A_i / \sum_j \lvert o_j\rvert$, length-independent; one normalizer shared by all tokens in the batch | $A_i / (G L_{\max})$, length-independent; fixed normalizer |
+| advantage | mean-centered, divided by std | mean-centered, divided by std | mean-centered only |
 | clipping $(\epsilon_{\text{low}}, \epsilon_{\text{high}})$ | symmetric (preset 0.2, 0.2) | asymmetric "clip-higher" (0.2, 0.28) | symmetric (preset 0.2, 0.2) |
 | KL penalty | $\beta = 0.04$, k3 estimator | none | none |
 | preset | `PolicyLossConfig.grpo()` | `PolicyLossConfig.dapo()` | `PolicyLossConfig.dr_grpo()` |
 
+The weights are those of the objective that is maximized. The loss is its
+negative, so the gradient of the loss with respect to a token's log-prob is
+minus that weight; the verification table below quotes the loss gradient.
+
 Under the original sequence-level reduction a short correct answer is
 reinforced more per token than a long one, and a long wrong answer is
-penalised less per token than a short one, which biases the policy towards
+penalized less per token than a short one, which biases the policy towards
 longer incorrect responses. Dividing by the group std additionally
-up-weights prompts whose rewards barely vary. Dr.GRPO removes both terms.
+up-weights prompts whose rewards barely vary, relative to mean-centering
+alone. Dr.GRPO removes both terms.
 Clip-higher lets low-probability tokens with positive advantage grow further
 before clipping, which DAPO uses against entropy collapse.
 
@@ -168,10 +185,10 @@ detail, including the sequence-level case.
 ## Design notes
 
 - **Plain tensors in, unreduced or scalar tensors out.** No function knows
-  about models, tokenizers or optimisers, so each one can be tested on
+  about models, tokenizers or optimizers, so each one can be tested on
   hand-built inputs. Preference losses return one value per pair and leave
   the batch reduction to the caller.
-- **The reduction is part of the objective.** Normalisation is an explicit
+- **The reduction is part of the objective.** Normalization is an explicit
   argument (`normalization`, `max_tokens`, and the global counts
   `num_target_tokens` for SFT and `num_tokens` / `num_sequences` for RL)
   rather than a hidden `.mean()`, because that denominator is where GRPO,
@@ -206,14 +223,14 @@ suite on Python 3.11 and 3.12). Highlights:
 |---|---|
 | GRPO/DAPO/Dr.GRPO losses equal a loop-based transcription of the paper equations, 5 configurations x 3 seeds | `tests/rl/test_losses.py` |
 | float64 `gradcheck` of every RL and preference loss | `tests/rl/test_losses.py`, `tests/preference/test_losses.py` |
-| per-token gradient weight is $-A_i/(G\lvert o_i\rvert)$ under sequence normalization (3x larger for a 2-token than a 6-token answer) and length-independent under Dr.GRPO and DAPO | `tests/rl/test_losses.py` |
+| per-token loss gradient $\partial\mathcal{L}/\partial\log\pi_\theta(o_{i,t})$ at $\rho = 1$ is $-A_i/(G\lvert o_i\rvert)$ under sequence normalization (3x larger for a 2-token than a 6-token answer) and length-independent under Dr.GRPO and DAPO | `tests/rl/test_losses.py` |
 | clip-higher keeps the gradient at ratio 1.25 with $A>0$; clipping never removes a corrective gradient | `tests/rl/test_losses.py` |
 | prompt and pad tokens, even when set to `-inf`, change neither loss nor gradient | `tests/rl/test_losses.py` |
 | advantages sum to zero per group, are invariant to per-group reward offsets, and constant groups give 0, not NaN | `tests/rl/test_advantages.py` |
 | k1 and k3 are unbiased and k2 is biased, by Monte Carlo (400k samples) against the exact KL between categorical distributions | `tests/rl/test_kl.py` |
 | used as loss terms, the exact expected gradients of k1, k2 and k3 are $0$, $\nabla\mathrm{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ and $\nabla\mathrm{KL}(\pi_{\text{ref}} \Vert \pi_\theta)$ on categorical distributions | `tests/rl/test_kl.py` |
 | DPO gradient w.r.t. the policy log-ratio equals $-\beta\sigma(-\beta m)$ with the correct sign for chosen, rejected and reference terms | `tests/preference/test_losses.py` |
-| conservative DPO is stationary at $m^*$; IPO penalises overshooting its target; SimPO equals DPO on average log-probs for any reference that cannot tell the pair apart, and is invariant to repeating a response | `tests/preference/test_losses.py` |
+| conservative DPO is stationary at $m^*$; IPO penalizes overshooting its target; SimPO equals DPO on average log-probs for any reference that cannot tell the pair apart, and is invariant to repeating a response | `tests/preference/test_losses.py` |
 | packed loss and all parameter gradients of a float64 transformer equal the unpacked sum (atol 1e-10); a plain causal mask or no position reset breaks this | `tests/sft/test_packed_equivalence.py` |
 | token-weighted gradient accumulation equals the full batch (atol 1e-12); the naive mean of micro-batch means is off by more than 10% | `tests/sft/test_grad_accumulation.py` |
 | RL losses accumulated over uneven micro-batches with global `num_tokens` / `num_sequences` equal the full-batch loss and gradient (atol 1e-12) for every normalization; averaging micro-batch losses does not | `tests/rl/test_losses.py` |
@@ -225,7 +242,7 @@ suite on Python 3.11 and 3.12). Highlights:
 `examples/toy_rlvr.py` trains a 2-layer, 64-wide GPT on 2-digit addition
 (`"ab+cd="` to the sum). A short SFT warm start (400 steps) is stopped while
 the model is still mostly wrong, then 150 Dr.GRPO steps (32 prompts x 8
-samples, 2 updates per batch) optimise an exact-match 0/1 reward. Accuracy is
+samples, 2 updates per batch) optimize an exact-match 0/1 reward. Accuracy is
 greedy decoding on 500 held-out problems.
 
 ```bash
@@ -253,6 +270,7 @@ a learning signal end to end; it is not evidence about RL at scale.
 ## References
 
 - Rafailov et al., *Direct Preference Optimization: Your Language Model is Secretly a Reward Model*, 2023. [arXiv:2305.18290](https://arxiv.org/abs/2305.18290)
+- Mitchell, *A note on DPO with noisy preferences & relationship to IPO* (conservative DPO), 2023. [ericmitchell.ai/cdpo.pdf](https://ericmitchell.ai/cdpo.pdf)
 - Azar et al., *A General Theoretical Paradigm to Understand Learning from Human Preferences* (IPO), 2023. [arXiv:2310.12036](https://arxiv.org/abs/2310.12036)
 - Meng, Xia and Chen, *SimPO: Simple Preference Optimization with a Reference-Free Reward*, 2024. [arXiv:2405.14734](https://arxiv.org/abs/2405.14734)
 - Shao et al., *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models* (GRPO), 2024. [arXiv:2402.03300](https://arxiv.org/abs/2402.03300)
@@ -262,7 +280,7 @@ a learning signal end to end; it is not evidence about RL at scale.
 - Schulman, *Approximating KL Divergence*, 2020. [joschu.net/blog/kl-approx.html](http://joschu.net/blog/kl-approx.html)
 - Tang and Munos, *On a few pitfalls in KL divergence gradient estimation for RL*, 2025. [arXiv:2506.09477](https://arxiv.org/abs/2506.09477)
 - Krell et al., *Efficient Sequence Packing without Cross-contamination: Accelerating Large Language Models without Impacting Performance*, 2021. [arXiv:2107.02027](https://arxiv.org/abs/2107.02027)
-- Dósa, *The Tight Bound of First Fit Decreasing Bin-Packing Algorithm Is FFD(I) <= 11/9 OPT(I) + 6/9*, 2007.
+- Dósa, *The Tight Bound of First Fit Decreasing Bin-Packing Algorithm Is FFD(I) <= 11/9 OPT(I) + 6/9*, 2007. [doi:10.1007/978-3-540-74450-4_1](https://doi.org/10.1007/978-3-540-74450-4_1)
 
 ## License and citation
 

@@ -25,7 +25,7 @@ The choice matters because it sets the gradient weight of every token. Under
 ``sequence`` normalization a token of response ``i`` is weighted by
 :math:`A_i / (G |o_i|)`: for a correct answer (``A > 0``) short responses are
 reinforced more per token, and for a wrong answer (``A < 0``) long responses
-are penalised less per token, which pushes incorrect responses to grow
+are penalized less per token, which pushes incorrect responses to grow
 longer. ``token`` normalization removes the per-response dependence but its
 denominator still varies with the batch; ``constant`` normalization makes the
 weight :math:`A_i / (G L_{\max})` independent of any length.
