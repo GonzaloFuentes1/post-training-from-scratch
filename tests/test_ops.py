@@ -41,6 +41,55 @@ def test_token_logprobs_masked_positions_are_zero_and_detached():
     assert torch.all(logits.grad[mask].abs().sum(-1) > 0)
 
 
+@pytest.mark.parametrize("junk", [float("-inf"), float("inf"), float("nan")])
+def test_token_logprobs_non_finite_masked_logits_give_finite_gradients(junk):
+    """A masked row of -inf, inf or NaN logits must not leak NaN into backward.
+
+    Without selecting before ``logsumexp`` the forward value is still correct
+    (the masked output is overwritten with 0), but the backward of
+    ``logsumexp`` multiplies the zero upstream gradient by a non-finite local
+    derivative and ``logits.grad`` becomes NaN on that row.
+    """
+    gen = torch.Generator().manual_seed(3)
+    clean = torch.randn(2, 4, 6, generator=gen, dtype=torch.float64)
+    targets = torch.tensor([[1, 2, -100, -100], [3, -100, 0, 5]])
+    mask = targets != -100
+
+    clean = clean.requires_grad_(True)
+    expected = token_logprobs(clean, targets, mask)
+    expected.sum().backward()
+
+    dirty = torch.where(mask.unsqueeze(-1), clean.detach(), torch.full_like(clean, junk))
+    dirty.requires_grad_(True)
+    got = token_logprobs(dirty, targets, mask)
+    got.sum().backward()
+
+    assert torch.equal(got.detach(), expected.detach())
+    assert dirty.grad is not None
+    assert torch.isfinite(dirty.grad).all()
+    assert torch.equal(dirty.grad, clean.grad)
+
+
+def test_masked_sum_does_not_protect_the_op_that_produced_the_padding():
+    """Documents the limit of masking: ``where`` guards ``values``, not its producer.
+
+    ``log(0) = -inf`` at a masked slot gives the right value, but the backward
+    of ``log`` evaluates ``0 * (1 / 0) = NaN``. Replacing the input before the
+    op (the "double where") fixes it.
+    """
+    x = torch.tensor([0.5, 0.0], requires_grad=True)
+    mask = torch.tensor([True, False])
+
+    masked_sum(torch.log(x), mask).backward()
+    assert x.grad is not None
+    assert torch.isnan(x.grad[1])
+
+    x.grad = None
+    safe_x = torch.where(mask, x, torch.ones_like(x))
+    masked_sum(torch.log(safe_x), mask).backward()
+    assert torch.equal(x.grad, torch.tensor([2.0, 0.0]))
+
+
 def test_token_logprobs_rejects_negative_targets_without_mask():
     with pytest.raises(ValueError, match="explicit mask"):
         token_logprobs(torch.zeros(1, 2, 3), torch.tensor([[0, -100]]))
