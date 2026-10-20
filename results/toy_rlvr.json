@@ -1,0 +1,985 @@
+{
+  "command": "python examples/toy_rlvr.py --seed 0",
+  "seed": 0,
+  "args": {
+    "seed": 0,
+    "recipe": "dr_grpo",
+    "sft_steps": 400,
+    "sft_batch": 64,
+    "sft_lr": 0.003,
+    "rl_steps": 150,
+    "prompts_per_step": 32,
+    "group_size": 8,
+    "updates_per_batch": 2,
+    "rl_lr": 0.0003,
+    "eval_every": 25,
+    "num_eval": 500,
+    "out": "results/toy_rlvr.json"
+  },
+  "model": {
+    "vocab_size": 14,
+    "d_model": 64,
+    "n_layers": 2,
+    "n_heads": 4,
+    "max_positions": 16
+  },
+  "loss_config": {
+    "normalization": "constant",
+    "eps_low": 0.2,
+    "eps_high": 0.2,
+    "beta": 0.0,
+    "kl_estimator": "k3",
+    "scale_advantages_by_std": false
+  },
+  "sft": {
+    "steps": 400,
+    "final_loss": 0.46748974919319153,
+    "held_out_accuracy": 0.47600001096725464,
+    "wall_time_s": 45.2
+  },
+  "rl": {
+    "steps": [
+      {
+        "step": 1,
+        "mean_reward": 0.26171875,
+        "clip_fraction": 0.06839622557163239,
+        "mean_response_tokens": 3.3125
+      },
+      {
+        "step": 2,
+        "mean_reward": 0.22265625,
+        "clip_fraction": 0.024193547666072845,
+        "mean_response_tokens": 3.390625
+      },
+      {
+        "step": 3,
+        "mean_reward": 0.30078125,
+        "clip_fraction": 0.009009009227156639,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 4,
+        "mean_reward": 0.2890625,
+        "clip_fraction": 0.006637168116867542,
+        "mean_response_tokens": 3.53125
+      },
+      {
+        "step": 5,
+        "mean_reward": 0.29296875,
+        "clip_fraction": 0.001114827231504023,
+        "mean_response_tokens": 3.50390625
+      },
+      {
+        "step": 6,
+        "mean_reward": 0.26171875,
+        "clip_fraction": 0.0022371364757418633,
+        "mean_response_tokens": 3.4921875
+      },
+      {
+        "step": 7,
+        "mean_reward": 0.35546875,
+        "clip_fraction": 0.00671140942722559,
+        "mean_response_tokens": 3.4921875
+      },
+      {
+        "step": 8,
+        "mean_reward": 0.3125,
+        "clip_fraction": 0.010044642724096775,
+        "mean_response_tokens": 3.5
+      },
+      {
+        "step": 9,
+        "mean_reward": 0.37890625,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.515625
+      },
+      {
+        "step": 10,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.4375
+      },
+      {
+        "step": 11,
+        "mean_reward": 0.19921875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.4453125
+      },
+      {
+        "step": 12,
+        "mean_reward": 0.3125,
+        "clip_fraction": 0.009483667090535164,
+        "mean_response_tokens": 3.70703125
+      },
+      {
+        "step": 13,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.4453125
+      },
+      {
+        "step": 14,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.0010582010727375746,
+        "mean_response_tokens": 3.69140625
+      },
+      {
+        "step": 15,
+        "mean_reward": 0.30078125,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.45703125
+      },
+      {
+        "step": 16,
+        "mean_reward": 0.34765625,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.50390625
+      },
+      {
+        "step": 17,
+        "mean_reward": 0.26953125,
+        "clip_fraction": 0.01706484705209732,
+        "mean_response_tokens": 3.43359375
+      },
+      {
+        "step": 18,
+        "mean_reward": 0.296875,
+        "clip_fraction": 0.00805523619055748,
+        "mean_response_tokens": 3.39453125
+      },
+      {
+        "step": 19,
+        "mean_reward": 0.43359375,
+        "clip_fraction": 0.0023310023825615644,
+        "mean_response_tokens": 3.3515625
+      },
+      {
+        "step": 20,
+        "mean_reward": 0.37890625,
+        "clip_fraction": 0.01416765060275793,
+        "mean_response_tokens": 3.30859375
+      },
+      {
+        "step": 21,
+        "mean_reward": 0.328125,
+        "clip_fraction": 0.002229654463008046,
+        "mean_response_tokens": 3.50390625
+      },
+      {
+        "step": 22,
+        "mean_reward": 0.375,
+        "clip_fraction": 0.011198208667337894,
+        "mean_response_tokens": 3.48828125
+      },
+      {
+        "step": 23,
+        "mean_reward": 0.25,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.55859375
+      },
+      {
+        "step": 24,
+        "mean_reward": 0.28515625,
+        "clip_fraction": 0.0011160714784637094,
+        "mean_response_tokens": 3.5
+      },
+      {
+        "step": 25,
+        "mean_reward": 0.3359375,
+        "clip_fraction": 0.0011560693383216858,
+        "mean_response_tokens": 3.37890625
+      },
+      {
+        "step": 26,
+        "mean_reward": 0.37890625,
+        "clip_fraction": 0.004540295340120792,
+        "mean_response_tokens": 3.44140625
+      },
+      {
+        "step": 27,
+        "mean_reward": 0.21875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.52734375
+      },
+      {
+        "step": 28,
+        "mean_reward": 0.3046875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.58984375
+      },
+      {
+        "step": 29,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.52734375
+      },
+      {
+        "step": 30,
+        "mean_reward": 0.41015625,
+        "clip_fraction": 0.0011198208667337894,
+        "mean_response_tokens": 3.48828125
+      },
+      {
+        "step": 31,
+        "mean_reward": 0.375,
+        "clip_fraction": 0.005688282195478678,
+        "mean_response_tokens": 3.43359375
+      },
+      {
+        "step": 32,
+        "mean_reward": 0.3671875,
+        "clip_fraction": 0.005630630534142256,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 33,
+        "mean_reward": 0.34375,
+        "clip_fraction": 0.0010869564721360803,
+        "mean_response_tokens": 3.59375
+      },
+      {
+        "step": 34,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.0011467889416962862,
+        "mean_response_tokens": 3.40625
+      },
+      {
+        "step": 35,
+        "mean_reward": 0.34375,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.36328125
+      },
+      {
+        "step": 36,
+        "mean_reward": 0.3828125,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.47265625
+      },
+      {
+        "step": 37,
+        "mean_reward": 0.5,
+        "clip_fraction": 0.0023391812574118376,
+        "mean_response_tokens": 3.33984375
+      },
+      {
+        "step": 38,
+        "mean_reward": 0.44140625,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.359375
+      },
+      {
+        "step": 39,
+        "mean_reward": 0.3359375,
+        "clip_fraction": 0.022346368059515953,
+        "mean_response_tokens": 3.49609375
+      },
+      {
+        "step": 40,
+        "mean_reward": 0.33203125,
+        "clip_fraction": 0.008045976981520653,
+        "mean_response_tokens": 3.3984375
+      },
+      {
+        "step": 41,
+        "mean_reward": 0.34375,
+        "clip_fraction": 0.004357298370450735,
+        "mean_response_tokens": 3.5859375
+      },
+      {
+        "step": 42,
+        "mean_reward": 0.453125,
+        "clip_fraction": 0.0022123893722891808,
+        "mean_response_tokens": 3.53125
+      },
+      {
+        "step": 43,
+        "mean_reward": 0.390625,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.6875
+      },
+      {
+        "step": 44,
+        "mean_reward": 0.3671875,
+        "clip_fraction": 0.0022547913249582052,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 45,
+        "mean_reward": 0.4609375,
+        "clip_fraction": 0.010044642724096775,
+        "mean_response_tokens": 3.5
+      },
+      {
+        "step": 46,
+        "mean_reward": 0.390625,
+        "clip_fraction": 0.011198208667337894,
+        "mean_response_tokens": 3.48828125
+      },
+      {
+        "step": 47,
+        "mean_reward": 0.375,
+        "clip_fraction": 0.009782608598470688,
+        "mean_response_tokens": 3.59375
+      },
+      {
+        "step": 48,
+        "mean_reward": 0.34375,
+        "clip_fraction": 0.009803921915590763,
+        "mean_response_tokens": 3.5859375
+      },
+      {
+        "step": 49,
+        "mean_reward": 0.48828125,
+        "clip_fraction": 0.009009009227156639,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 50,
+        "mean_reward": 0.40625,
+        "clip_fraction": 0.013651876710355282,
+        "mean_response_tokens": 3.43359375
+      },
+      {
+        "step": 51,
+        "mean_reward": 0.3359375,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.40625
+      },
+      {
+        "step": 52,
+        "mean_reward": 0.3359375,
+        "clip_fraction": 0.0033370412420481443,
+        "mean_response_tokens": 3.51171875
+      },
+      {
+        "step": 53,
+        "mean_reward": 0.37890625,
+        "clip_fraction": 0.01116071455180645,
+        "mean_response_tokens": 3.5
+      },
+      {
+        "step": 54,
+        "mean_reward": 0.33203125,
+        "clip_fraction": 0.0011111111380159855,
+        "mean_response_tokens": 3.515625
+      },
+      {
+        "step": 55,
+        "mean_reward": 0.4453125,
+        "clip_fraction": 0.001098901149816811,
+        "mean_response_tokens": 3.5546875
+      },
+      {
+        "step": 56,
+        "mean_reward": 0.390625,
+        "clip_fraction": 0.0011261261533945799,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 57,
+        "mean_reward": 0.38671875,
+        "clip_fraction": 0.003401360474526882,
+        "mean_response_tokens": 3.4453125
+      },
+      {
+        "step": 58,
+        "mean_reward": 0.33984375,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.65234375
+      },
+      {
+        "step": 59,
+        "mean_reward": 0.421875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.546875
+      },
+      {
+        "step": 60,
+        "mean_reward": 0.40234375,
+        "clip_fraction": 0.004514672793447971,
+        "mean_response_tokens": 3.4609375
+      },
+      {
+        "step": 61,
+        "mean_reward": 0.296875,
+        "clip_fraction": 0.009708737954497337,
+        "mean_response_tokens": 3.62109375
+      },
+      {
+        "step": 62,
+        "mean_reward": 0.35546875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.625
+      },
+      {
+        "step": 63,
+        "mean_reward": 0.41015625,
+        "clip_fraction": 0.005549389403313398,
+        "mean_response_tokens": 3.51953125
+      },
+      {
+        "step": 64,
+        "mean_reward": 0.44140625,
+        "clip_fraction": 0.012141280807554722,
+        "mean_response_tokens": 3.5390625
+      },
+      {
+        "step": 65,
+        "mean_reward": 0.35546875,
+        "clip_fraction": 0.013186813332140446,
+        "mean_response_tokens": 3.5546875
+      },
+      {
+        "step": 66,
+        "mean_reward": 0.39453125,
+        "clip_fraction": 0.00657894741743803,
+        "mean_response_tokens": 3.5625
+      },
+      {
+        "step": 67,
+        "mean_reward": 0.35546875,
+        "clip_fraction": 0.0054824561811983585,
+        "mean_response_tokens": 3.5625
+      },
+      {
+        "step": 68,
+        "mean_reward": 0.421875,
+        "clip_fraction": 0.003229278838261962,
+        "mean_response_tokens": 3.62890625
+      },
+      {
+        "step": 69,
+        "mean_reward": 0.3984375,
+        "clip_fraction": 0.013513513840734959,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 70,
+        "mean_reward": 0.375,
+        "clip_fraction": 0.0044843051582574844,
+        "mean_response_tokens": 3.484375
+      },
+      {
+        "step": 71,
+        "mean_reward": 0.3828125,
+        "clip_fraction": 0.0011614401591941714,
+        "mean_response_tokens": 3.36328125
+      },
+      {
+        "step": 72,
+        "mean_reward": 0.44140625,
+        "clip_fraction": 0.030716722831130028,
+        "mean_response_tokens": 3.43359375
+      },
+      {
+        "step": 73,
+        "mean_reward": 0.359375,
+        "clip_fraction": 0.0010857763700187206,
+        "mean_response_tokens": 3.59765625
+      },
+      {
+        "step": 74,
+        "mean_reward": 0.39453125,
+        "clip_fraction": 0.011866235174238682,
+        "mean_response_tokens": 3.62109375
+      },
+      {
+        "step": 75,
+        "mean_reward": 0.38671875,
+        "clip_fraction": 0.014008620753884315,
+        "mean_response_tokens": 3.625
+      },
+      {
+        "step": 76,
+        "mean_reward": 0.43359375,
+        "clip_fraction": 0.004545454401522875,
+        "mean_response_tokens": 3.4375
+      },
+      {
+        "step": 77,
+        "mean_reward": 0.453125,
+        "clip_fraction": 0.010146561078727245,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 78,
+        "mean_reward": 0.30078125,
+        "clip_fraction": 0.0031813362147659063,
+        "mean_response_tokens": 3.68359375
+      },
+      {
+        "step": 79,
+        "mean_reward": 0.51171875,
+        "clip_fraction": 0.01127395685762167,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 80,
+        "mean_reward": 0.36328125,
+        "clip_fraction": 0.004400440026074648,
+        "mean_response_tokens": 3.55078125
+      },
+      {
+        "step": 81,
+        "mean_reward": 0.40234375,
+        "clip_fraction": 0.0010976948542520404,
+        "mean_response_tokens": 3.55859375
+      },
+      {
+        "step": 82,
+        "mean_reward": 0.38671875,
+        "clip_fraction": 0.017391303554177284,
+        "mean_response_tokens": 3.59375
+      },
+      {
+        "step": 83,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.008781558834016323,
+        "mean_response_tokens": 3.55859375
+      },
+      {
+        "step": 84,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.002290950855240226,
+        "mean_response_tokens": 3.41015625
+      },
+      {
+        "step": 85,
+        "mean_reward": 0.53125,
+        "clip_fraction": 0.0034246575087308884,
+        "mean_response_tokens": 3.421875
+      },
+      {
+        "step": 86,
+        "mean_reward": 0.46875,
+        "clip_fraction": 0.005605380982160568,
+        "mean_response_tokens": 3.484375
+      },
+      {
+        "step": 87,
+        "mean_reward": 0.46875,
+        "clip_fraction": 0.004545454401522875,
+        "mean_response_tokens": 3.4375
+      },
+      {
+        "step": 88,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.0011185682378709316,
+        "mean_response_tokens": 3.4921875
+      },
+      {
+        "step": 89,
+        "mean_reward": 0.390625,
+        "clip_fraction": 0.012775842100381851,
+        "mean_response_tokens": 3.36328125
+      },
+      {
+        "step": 90,
+        "mean_reward": 0.4375,
+        "clip_fraction": 0.002270147670060396,
+        "mean_response_tokens": 3.44140625
+      },
+      {
+        "step": 91,
+        "mean_reward": 0.390625,
+        "clip_fraction": 0.0021574972197413445,
+        "mean_response_tokens": 3.62109375
+      },
+      {
+        "step": 92,
+        "mean_reward": 0.48828125,
+        "clip_fraction": 0.0032362460624426603,
+        "mean_response_tokens": 3.62109375
+      },
+      {
+        "step": 93,
+        "mean_reward": 0.46484375,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.47265625
+      },
+      {
+        "step": 94,
+        "mean_reward": 0.32421875,
+        "clip_fraction": 0.008658008649945259,
+        "mean_response_tokens": 3.609375
+      },
+      {
+        "step": 95,
+        "mean_reward": 0.47265625,
+        "clip_fraction": 0.035087719559669495,
+        "mean_response_tokens": 3.33984375
+      },
+      {
+        "step": 96,
+        "mean_reward": 0.46484375,
+        "clip_fraction": 0.009814612567424774,
+        "mean_response_tokens": 3.58203125
+      },
+      {
+        "step": 97,
+        "mean_reward": 0.31640625,
+        "clip_fraction": 0.005452562589198351,
+        "mean_response_tokens": 3.58203125
+      },
+      {
+        "step": 98,
+        "mean_reward": 0.4375,
+        "clip_fraction": 0.00455580884590745,
+        "mean_response_tokens": 3.4296875
+      },
+      {
+        "step": 99,
+        "mean_reward": 0.4609375,
+        "clip_fraction": 0.010550996288657188,
+        "mean_response_tokens": 3.33203125
+      },
+      {
+        "step": 100,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.007891770452260971,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 101,
+        "mean_reward": 0.4609375,
+        "clip_fraction": 0.014525139704346657,
+        "mean_response_tokens": 3.49609375
+      },
+      {
+        "step": 102,
+        "mean_reward": 0.4453125,
+        "clip_fraction": 0.007882882840931416,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 103,
+        "mean_reward": 0.38671875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.55859375
+      },
+      {
+        "step": 104,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.008849557489156723,
+        "mean_response_tokens": 3.53125
+      },
+      {
+        "step": 105,
+        "mean_reward": 0.41796875,
+        "clip_fraction": 0.005494505632668734,
+        "mean_response_tokens": 3.5546875
+      },
+      {
+        "step": 106,
+        "mean_reward": 0.33203125,
+        "clip_fraction": 0.0051759835332632065,
+        "mean_response_tokens": 3.7734375
+      },
+      {
+        "step": 107,
+        "mean_reward": 0.46484375,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.5234375
+      },
+      {
+        "step": 108,
+        "mean_reward": 0.421875,
+        "clip_fraction": 0.0254924688488245,
+        "mean_response_tokens": 3.37109375
+      },
+      {
+        "step": 109,
+        "mean_reward": 0.5546875,
+        "clip_fraction": 0.0046349940821528435,
+        "mean_response_tokens": 3.37109375
+      },
+      {
+        "step": 110,
+        "mean_reward": 0.421875,
+        "clip_fraction": 0.0,
+        "mean_response_tokens": 3.53515625
+      },
+      {
+        "step": 111,
+        "mean_reward": 0.359375,
+        "clip_fraction": 0.008724099956452847,
+        "mean_response_tokens": 3.58203125
+      },
+      {
+        "step": 112,
+        "mean_reward": 0.4921875,
+        "clip_fraction": 0.005662514362484217,
+        "mean_response_tokens": 3.44921875
+      },
+      {
+        "step": 113,
+        "mean_reward": 0.41796875,
+        "clip_fraction": 0.0044247787445783615,
+        "mean_response_tokens": 3.53125
+      },
+      {
+        "step": 114,
+        "mean_reward": 0.66015625,
+        "clip_fraction": 0.02243211306631565,
+        "mean_response_tokens": 3.30859375
+      },
+      {
+        "step": 115,
+        "mean_reward": 0.42578125,
+        "clip_fraction": 0.0173611119389534,
+        "mean_response_tokens": 3.375
+      },
+      {
+        "step": 116,
+        "mean_reward": 0.40234375,
+        "clip_fraction": 0.0033860045950859785,
+        "mean_response_tokens": 3.4609375
+      },
+      {
+        "step": 117,
+        "mean_reward": 0.3203125,
+        "clip_fraction": 0.005458515137434006,
+        "mean_response_tokens": 3.578125
+      },
+      {
+        "step": 118,
+        "mean_reward": 0.36328125,
+        "clip_fraction": 0.007683863863348961,
+        "mean_response_tokens": 3.55859375
+      },
+      {
+        "step": 119,
+        "mean_reward": 0.3984375,
+        "clip_fraction": 0.004454343114048243,
+        "mean_response_tokens": 3.5078125
+      },
+      {
+        "step": 120,
+        "mean_reward": 0.4609375,
+        "clip_fraction": 0.002314814832061529,
+        "mean_response_tokens": 3.375
+      },
+      {
+        "step": 121,
+        "mean_reward": 0.52734375,
+        "clip_fraction": 0.016574585810303688,
+        "mean_response_tokens": 3.53515625
+      },
+      {
+        "step": 122,
+        "mean_reward": 0.3515625,
+        "clip_fraction": 0.010504201985895634,
+        "mean_response_tokens": 3.71875
+      },
+      {
+        "step": 123,
+        "mean_reward": 0.4765625,
+        "clip_fraction": 0.01706484705209732,
+        "mean_response_tokens": 3.43359375
+      },
+      {
+        "step": 124,
+        "mean_reward": 0.4140625,
+        "clip_fraction": 0.013888888992369175,
+        "mean_response_tokens": 3.375
+      },
+      {
+        "step": 125,
+        "mean_reward": 0.3984375,
+        "clip_fraction": 0.016967127099633217,
+        "mean_response_tokens": 3.68359375
+      },
+      {
+        "step": 126,
+        "mean_reward": 0.4453125,
+        "clip_fraction": 0.013777267187833786,
+        "mean_response_tokens": 3.40234375
+      },
+      {
+        "step": 127,
+        "mean_reward": 0.50390625,
+        "clip_fraction": 0.0011173184029757977,
+        "mean_response_tokens": 3.49609375
+      },
+      {
+        "step": 128,
+        "mean_reward": 0.4453125,
+        "clip_fraction": 0.010227272287011147,
+        "mean_response_tokens": 3.4375
+      },
+      {
+        "step": 129,
+        "mean_reward": 0.4375,
+        "clip_fraction": 0.0032327587250620127,
+        "mean_response_tokens": 3.625
+      },
+      {
+        "step": 130,
+        "mean_reward": 0.4453125,
+        "clip_fraction": 0.020111732184886932,
+        "mean_response_tokens": 3.49609375
+      },
+      {
+        "step": 131,
+        "mean_reward": 0.62890625,
+        "clip_fraction": 0.014590348117053509,
+        "mean_response_tokens": 3.48046875
+      },
+      {
+        "step": 132,
+        "mean_reward": 0.42578125,
+        "clip_fraction": 0.013303769752383232,
+        "mean_response_tokens": 3.5234375
+      },
+      {
+        "step": 133,
+        "mean_reward": 0.5234375,
+        "clip_fraction": 0.008177570067346096,
+        "mean_response_tokens": 3.34375
+      },
+      {
+        "step": 134,
+        "mean_reward": 0.53125,
+        "clip_fraction": 0.02099447511136532,
+        "mean_response_tokens": 3.53515625
+      },
+      {
+        "step": 135,
+        "mean_reward": 0.39453125,
+        "clip_fraction": 0.014755958691239357,
+        "mean_response_tokens": 3.44140625
+      },
+      {
+        "step": 136,
+        "mean_reward": 0.49609375,
+        "clip_fraction": 0.017543859779834747,
+        "mean_response_tokens": 3.5625
+      },
+      {
+        "step": 137,
+        "mean_reward": 0.4296875,
+        "clip_fraction": 0.0043431054800748825,
+        "mean_response_tokens": 3.59765625
+      },
+      {
+        "step": 138,
+        "mean_reward": 0.51171875,
+        "clip_fraction": 0.01123595517128706,
+        "mean_response_tokens": 3.4765625
+      },
+      {
+        "step": 139,
+        "mean_reward": 0.515625,
+        "clip_fraction": 0.007829977199435234,
+        "mean_response_tokens": 3.4921875
+      },
+      {
+        "step": 140,
+        "mean_reward": 0.30859375,
+        "clip_fraction": 0.015625,
+        "mean_response_tokens": 3.5
+      },
+      {
+        "step": 141,
+        "mean_reward": 0.4609375,
+        "clip_fraction": 0.013513513840734959,
+        "mean_response_tokens": 3.46875
+      },
+      {
+        "step": 142,
+        "mean_reward": 0.453125,
+        "clip_fraction": 0.009999999776482582,
+        "mean_response_tokens": 3.515625
+      },
+      {
+        "step": 143,
+        "mean_reward": 0.5078125,
+        "clip_fraction": 0.009019165299832821,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 144,
+        "mean_reward": 0.46875,
+        "clip_fraction": 0.006521739065647125,
+        "mean_response_tokens": 3.59375
+      },
+      {
+        "step": 145,
+        "mean_reward": 0.5703125,
+        "clip_fraction": 0.01411509234458208,
+        "mean_response_tokens": 3.59765625
+      },
+      {
+        "step": 146,
+        "mean_reward": 0.51953125,
+        "clip_fraction": 0.004587155766785145,
+        "mean_response_tokens": 3.40625
+      },
+      {
+        "step": 147,
+        "mean_reward": 0.62109375,
+        "clip_fraction": 0.013683009892702103,
+        "mean_response_tokens": 3.42578125
+      },
+      {
+        "step": 148,
+        "mean_reward": 0.40234375,
+        "clip_fraction": 0.010146561078727245,
+        "mean_response_tokens": 3.46484375
+      },
+      {
+        "step": 149,
+        "mean_reward": 0.4140625,
+        "clip_fraction": 0.031145717948675156,
+        "mean_response_tokens": 3.51171875
+      },
+      {
+        "step": 150,
+        "mean_reward": 0.44921875,
+        "clip_fraction": 0.02654867246747017,
+        "mean_response_tokens": 3.53125
+      }
+    ],
+    "eval": [
+      {
+        "step": 0,
+        "held_out_accuracy": 0.47600001096725464
+      },
+      {
+        "step": 25,
+        "held_out_accuracy": 0.46000000834465027
+      },
+      {
+        "step": 50,
+        "held_out_accuracy": 0.5040000081062317
+      },
+      {
+        "step": 75,
+        "held_out_accuracy": 0.5260000228881836
+      },
+      {
+        "step": 100,
+        "held_out_accuracy": 0.5519999861717224
+      },
+      {
+        "step": 125,
+        "held_out_accuracy": 0.5600000023841858
+      },
+      {
+        "step": 150,
+        "held_out_accuracy": 0.5839999914169312
+      }
+    ],
+    "wall_time_s": 87.78
+  },
+  "total_wall_time_s": 133.27,
+  "hardware": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "logical_cpus": 16,
+    "torch_threads": 10,
+    "python": "3.12.13",
+    "torch": "2.14.1+cpu",
+    "device": "cpu"
+  }
+}

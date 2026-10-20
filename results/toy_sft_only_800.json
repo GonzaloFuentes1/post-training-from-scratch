@@ -1,0 +1,60 @@
+{
+  "command": "python examples/toy_rlvr.py --seed 0 --sft-steps 800 --rl-steps 0 --out results/toy_sft_only_800.json",
+  "seed": 0,
+  "args": {
+    "seed": 0,
+    "recipe": "dr_grpo",
+    "sft_steps": 800,
+    "sft_batch": 64,
+    "sft_lr": 0.003,
+    "rl_steps": 0,
+    "prompts_per_step": 32,
+    "group_size": 8,
+    "updates_per_batch": 2,
+    "rl_lr": 0.0003,
+    "eval_every": 25,
+    "num_eval": 500,
+    "out": "results/toy_sft_only_800.json"
+  },
+  "model": {
+    "vocab_size": 14,
+    "d_model": 64,
+    "n_layers": 2,
+    "n_heads": 4,
+    "max_positions": 16
+  },
+  "loss_config": {
+    "normalization": "constant",
+    "eps_low": 0.2,
+    "eps_high": 0.2,
+    "beta": 0.0,
+    "kl_estimator": "k3",
+    "scale_advantages_by_std": false
+  },
+  "sft": {
+    "steps": 800,
+    "final_loss": 0.06715193390846252,
+    "held_out_accuracy": 0.9340000152587891,
+    "wall_time_s": 166.11
+  },
+  "rl": {
+    "steps": [],
+    "eval": [
+      {
+        "step": 0,
+        "held_out_accuracy": 0.9340000152587891
+      }
+    ],
+    "wall_time_s": 0.0
+  },
+  "total_wall_time_s": 166.39,
+  "hardware": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "logical_cpus": 16,
+    "torch_threads": 10,
+    "python": "3.12.13",
+    "torch": "2.14.1+cpu",
+    "device": "cpu"
+  }
+}
