@@ -20,9 +20,10 @@ It is:
   transformations they depend on (packing, attention masks, loss masks,
   advantages, KL estimators);
 - a test suite that states the properties those objectives must satisfy and
-  checks them on CPU in seconds;
+  checks them on CPU in under a minute;
 - a toy end-to-end example (SFT warm start, then RL with a verifiable reward)
-  that shows the RL losses produce a learning signal.
+  that shows the RL losses produce a learning signal; CI runs it with tiny
+  settings so it cannot silently break.
 
 It is not a trainer. There is no distributed training, no inference engine
 for rollouts, no checkpointing and no model zoo. For production post-training
@@ -216,8 +217,9 @@ detail, including the sequence-level case.
 
 ## How it is verified
 
-`pytest` runs 121 tests on CPU (about 22 s locally; CI runs ruff and the
-suite on Python 3.11 and 3.12). Highlights:
+`pytest` runs 152 tests on CPU: 12 to 53 s across local runs on the machine
+described under Results, depending on other load. CI runs ruff and the suite
+on Python 3.11 and 3.12. Highlights:
 
 | property | test |
 |---|---|
@@ -240,32 +242,49 @@ suite on Python 3.11 and 3.12). Highlights:
 ## Results: toy RL with a verifiable reward
 
 `examples/toy_rlvr.py` trains a 2-layer, 64-wide GPT on 2-digit addition
-(`"ab+cd="` to the sum). A short SFT warm start (400 steps) is stopped while
-the model is still mostly wrong, then 150 Dr.GRPO steps (32 prompts x 8
-samples, 2 updates per batch) optimize an exact-match 0/1 reward. Accuracy is
-greedy decoding on 500 held-out problems.
+(`"ab+cd="` to the sum). A short SFT warm start (400 steps) leaves the model
+only partially correct, then 150 Dr.GRPO steps (32 prompts x 8 samples, 2
+updates per batch) optimize an exact-match 0/1 reward. Accuracy is greedy
+decoding on 500 held-out problems. The seed sets the initialization, the
+train/held-out split and the sampling. Five seeds, each also compared with
+plain SFT for 800 steps:
 
 ```bash
-python examples/toy_rlvr.py --seed 0
+for seed in 0 1 2 3 4; do
+  python examples/toy_rlvr.py --seed $seed --out results/toy_rlvr_seed$seed.json
+  python examples/toy_rlvr.py --seed $seed --sft-steps 800 --rl-steps 0 \
+    --out results/toy_sft_only_800_seed$seed.json
+done
 ```
 
-| stage | held-out accuracy |
-|---|---|
-| after SFT (400 steps) | 0.476 |
-| after 150 RL steps | 0.584 |
+| seed | SFT 400 steps | SFT 400 + RL 150 steps | change from RL | SFT 800 steps |
+|---|---|---|---|---|
+| 0 | 0.476 | 0.584 | +0.108 | 0.934 |
+| 1 | 0.770 | 0.912 | +0.142 | 0.924 |
+| 2 | 0.764 | 0.948 | +0.184 | 0.998 |
+| 3 | 0.938 | 0.994 | +0.056 | 0.994 |
+| 4 | 0.810 | 0.946 | +0.136 | 0.998 |
+| mean (min to max) | 0.752 (0.476 to 0.938) | 0.877 (0.584 to 0.994) | +0.125 (+0.056 to +0.184) | 0.970 (0.924 to 0.998) |
 
-Mean training reward (sampled at temperature 1) rose from 0.310 over the
-first 25 RL steps to 0.476 over the last 25. Full per-step data is in
-[`results/toy_rlvr.json`](results/toy_rlvr.json). The run took 133 s on CPU
-(Windows 11, Intel CPU with 16 logical cores, torch 2.14.1+cpu, single
-seed); a second run with the same seed reproduced the same accuracies.
+RL improved held-out accuracy on every seed. Mean training reward (sampled
+at temperature 1) rose from 0.625 over the first 25 RL steps to 0.783 over
+the last 25, averaged over seeds (seed 0: 0.310 to 0.476). The warm start
+varies a lot between seeds (0.476 to 0.938), so a single seed says little
+about the size of the effect. Per-step data, commands and hardware are in
+`results/toy_rlvr_seed*.json` and `results/toy_sft_only_800_seed*.json`.
 
-For perspective, simply continuing supervised training reaches 0.934 after
-800 SFT steps
-(`python examples/toy_rlvr.py --seed 0 --sft-steps 800 --rl-steps 0 --out results/toy_sft_only_800.json`).
-When labels are available, SFT is far more sample-efficient than a binary
-reward on this task. The example demonstrates that the RL objectives produce
-a learning signal end to end; it is not evidence about RL at scale.
+Hardware: Windows 11, Intel CPU with 16 logical cores, CPU only, torch
+2.14.1+cpu with 10 threads, Python 3.12. One SFT + RL run took 22.7 to
+27.6 s and one 800-step SFT run 18.0 to 22.0 s. Wall time depends on other
+load on the machine: an earlier seed-0 run, made while other jobs were
+running, took 153 s with identical accuracies. Three runs of seed 0 on this
+machine gave identical accuracies and rewards.
+
+For perspective, 400 more SFT steps (25,600 labeled examples) matched or
+beat 150 RL steps (38,400 sampled responses) on every seed. When labels are
+available, SFT is the more sample-efficient signal on this task. The example
+demonstrates that the RL objectives produce a learning signal end to end; it
+is not evidence about RL at scale.
 
 ## References
 
