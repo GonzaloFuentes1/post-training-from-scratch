@@ -7,12 +7,18 @@ GRPO replaces PPO's learned value baseline with the mean reward of a group of
 
     A_i = \frac{r_i - \operatorname{mean}(r_{1..G})}{\operatorname{std}(r_{1..G}) + \epsilon}
 
-Mean-centering is what makes this a baseline: it leaves the policy gradient
-unbiased while removing the per-prompt reward offset. Dividing by the group
-standard deviation is a separate choice. Dr.GRPO (Liu et al., 2025) points out
-that it re-weights prompts by the inverse of their reward spread, so prompts
-that are almost always solved or almost always failed (small std) receive the
-largest updates. ``scale_by_std=False`` gives the Dr.GRPO variant.
+Mean-centering is what makes this a baseline: it removes the per-prompt
+reward offset and leaves the policy gradient unbiased up to a factor
+:math:`(G - 1) / G`, because the group mean includes the sample itself (a
+leave-one-out mean would make it exactly unbiased). Dividing by the group
+standard deviation is a separate choice. With the unbiased std,
+:math:`\sum_i A_i^2 = G - 1` for every group whose rewards are not all equal,
+so std scaling rescales each group to the same advantage norm. Dr.GRPO (Liu
+et al., 2025) points out that this up-weights low-variance prompts (almost
+always solved or almost always failed) *relative to mean-centering alone*.
+It does not give them the largest updates in absolute terms: for ``G = 8``
+binary rewards, :math:`\sum_i |A_i|` is about 4.95 with one correct response
+and 7.48 with four. ``scale_by_std=False`` gives the Dr.GRPO variant.
 """
 
 from __future__ import annotations

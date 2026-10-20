@@ -73,6 +73,38 @@ def test_std_scaling_removes_reward_scale_but_dr_grpo_keeps_it():
     )
 
 
+def test_std_scaling_equalizes_the_advantage_norm_of_every_group():
+    """sum_i A_i^2 = G - 1 for any non-constant group (unbiased std, eps = 0)."""
+    rewards = _rewards(num_groups=5, group_size=8, seed=5)
+
+    adv = group_relative_advantages(rewards, 8, eps=0.0).view(5, 8)
+
+    torch.testing.assert_close(adv.square().sum(-1), torch.full((5,), 7.0, dtype=torch.float64))
+
+
+def test_balanced_binary_groups_still_get_the_largest_total_advantage():
+    """Std scaling up-weights near-solved prompts only relative to Dr.GRPO."""
+    group_size = 8
+    totals = {}
+    for correct in (1, 4):
+        rewards = torch.tensor(
+            [1.0] * correct + [0.0] * (group_size - correct), dtype=torch.float64
+        )
+        totals[correct] = {
+            scale: group_relative_advantages(rewards, group_size, scale_by_std=scale, eps=0.0)
+            .abs()
+            .sum()
+            .item()
+            for scale in (True, False)
+        }
+
+    assert totals[1][True] == pytest.approx(4.95, abs=0.01)
+    assert totals[4][True] == pytest.approx(7.48, abs=0.01)
+    assert totals[4][True] > totals[1][True]
+    # Relative to mean-centering alone, the 1-of-8 group gains more from scaling.
+    assert totals[1][True] / totals[1][False] > totals[4][True] / totals[4][False]
+
+
 def test_rejects_ragged_groups():
     with pytest.raises(ValueError, match="groups of 4"):
         group_relative_advantages(torch.zeros(6), 4)
