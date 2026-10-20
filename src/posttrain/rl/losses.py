@@ -29,6 +29,26 @@ are penalised less per token, which pushes incorrect responses to grow
 longer. ``token`` normalization removes the per-response dependence but its
 denominator still varies with the batch; ``constant`` normalization makes the
 weight :math:`A_i / (G L_{\max})` independent of any length.
+
+Gradient accumulation
+---------------------
+
+All three denominators belong to the *whole* optimizer batch: ``G`` (in
+general the number of responses ``B``) and :math:`\sum_i |o_i|` count every
+response that contributes to one optimizer step. If that batch is split into
+micro-batches and each one is reduced with its own counts, the result is a
+mean of per-micro-batch means, the error that :mod:`posttrain.sft.loss`
+describes for SFT: under ``token`` normalization, for example, a token in a
+micro-batch with few response tokens is over-weighted. Pass the global counts
+as ``num_sequences`` and ``num_tokens`` to every micro-batch and sum (do not
+average) the micro-batch losses; the accumulated gradient then equals the
+full-batch gradient. The per-response means of ``sequence`` normalization
+are local to each response, so it only needs the global ``num_sequences``.
+
+A response with no valid tokens adds 0 to the numerator of every
+normalization, but under ``sequence`` and ``constant`` it still counts in the
+default divisor ``B``, as in common open-source implementations. Pass
+``num_sequences`` explicitly to count only non-empty responses.
 """
 
 from __future__ import annotations
@@ -124,27 +144,56 @@ def clipped_surrogate(
     return objective, is_clipped
 
 
+def _positive_count(name: str, value: int | None, default: int) -> int:
+    if value is None:
+        return default
+    if value <= 0:
+        raise ValueError(f"{name} must be positive, got {value}")
+    return value
+
+
 def aggregate_token_losses(
     per_token_loss: Tensor,
     mask: Tensor,
     normalization: Normalization,
     max_tokens: int | None = None,
+    *,
+    num_sequences: int | None = None,
+    num_tokens: int | None = None,
 ) -> Tensor:
     """Reduce ``[num_sequences, seq_len]`` token losses to a scalar.
 
-    ``max_tokens`` is the generation budget :math:`L_{\\max}` for ``constant``
-    normalization. It must be a true constant of the run (for example
-    ``max_new_tokens``), not the padded length of the current batch, otherwise
-    the length dependence that Dr.GRPO removes comes back through padding.
+    Args:
+        per_token_loss: ``[B, T]`` per-token losses.
+        mask: ``[B, T]`` true on response tokens.
+        normalization: ``"sequence"``, ``"token"`` or ``"constant"``.
+        max_tokens: The generation budget :math:`L_{\\max}` for ``constant``
+            normalization. It must be a true constant of the run (for example
+            ``max_new_tokens``), not the padded length of the current batch,
+            otherwise the length dependence that Dr.GRPO removes comes back
+            through padding.
+        num_sequences: Number of responses in the whole optimizer batch, used
+            by ``sequence`` and ``constant``. Defaults to ``B``, which is only
+            correct when this call sees the whole batch.
+        num_tokens: Number of response tokens in the whole optimizer batch,
+            used by ``token``. Defaults to ``mask.sum()``, which is only
+            correct when this call sees the whole batch.
+
+    With gradient accumulation, pass the global counts to every micro-batch
+    and sum the returned losses (see the module docstring).
     """
+    mask = mask.bool()
     if normalization == "sequence":
-        return masked_mean(per_token_loss, mask, dim=-1).mean()
+        sequences = _positive_count("num_sequences", num_sequences, per_token_loss.shape[0])
+        return masked_mean(per_token_loss, mask, dim=-1).sum() / sequences
     if normalization == "token":
-        return masked_mean(per_token_loss, mask)
+        tokens = _positive_count("num_tokens", num_tokens, max(int(mask.sum()), 1))
+        return masked_sum(per_token_loss, mask) / tokens
     if normalization == "constant":
         if max_tokens is None or max_tokens <= 0:
             raise ValueError("constant normalization needs a positive max_tokens")
-        return masked_sum(per_token_loss, mask) / (per_token_loss.shape[0] * max_tokens)
+        sequences = _positive_count("num_sequences", num_sequences, per_token_loss.shape[0])
+        return masked_sum(per_token_loss, mask) / (sequences * max_tokens)
     raise ValueError(f"unknown normalization {normalization!r}")
 
 
@@ -157,6 +206,8 @@ def policy_gradient_loss(
     *,
     ref_logp: Tensor | None = None,
     max_tokens: int | None = None,
+    num_sequences: int | None = None,
+    num_tokens: int | None = None,
 ) -> PolicyLossOutput:
     """Clipped policy-gradient loss for a batch of sampled responses.
 
@@ -171,6 +222,13 @@ def policy_gradient_loss(
         config: Recipe hyper-parameters, see :class:`PolicyLossConfig`.
         ref_logp: ``[B, T]`` reference log-probs; required when ``config.beta > 0``.
         max_tokens: Generation budget for ``constant`` normalization.
+        num_sequences: Responses in the whole optimizer batch; pass it when
+            this call sees one micro-batch. See :func:`aggregate_token_losses`.
+        num_tokens: Response tokens in the whole optimizer batch; pass it when
+            this call sees one micro-batch. See :func:`aggregate_token_losses`.
+
+    The diagnostics ``clip_fraction`` and ``kl`` are always local means over
+    the tokens of this call.
     """
     if logp.shape != old_logp.shape or logp.shape != mask.shape:
         raise ValueError("logp, old_logp and mask must share a [B, T] shape")
@@ -197,7 +255,14 @@ def policy_gradient_loss(
         per_token_loss = per_token_loss + config.beta * per_token_kl
         kl = masked_mean(per_token_kl.detach(), mask)
 
-    loss = aggregate_token_losses(per_token_loss, mask, config.normalization, max_tokens)
+    loss = aggregate_token_losses(
+        per_token_loss,
+        mask,
+        config.normalization,
+        max_tokens,
+        num_sequences=num_sequences,
+        num_tokens=num_tokens,
+    )
     per_token_loss = torch.where(mask, per_token_loss, torch.zeros_like(per_token_loss))
     clip_fraction = masked_mean(is_clipped.to(logp.dtype), mask)
     return PolicyLossOutput(
