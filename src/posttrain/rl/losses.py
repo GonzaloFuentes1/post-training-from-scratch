@@ -44,6 +44,9 @@ as ``num_sequences`` and ``num_tokens`` to every micro-batch and sum (do not
 average) the micro-batch losses; the accumulated gradient then equals the
 full-batch gradient. The per-response means of ``sequence`` normalization
 are local to each response, so it only needs the global ``num_sequences``.
+Under data-parallel training the counts are summed over ranks, and because
+DDP averages gradients across ranks the same ``world_size`` correction as in
+:mod:`posttrain.sft.loss` applies.
 
 A response with no valid tokens adds 0 to the numerator of every
 normalization, but under ``sequence`` and ``constant`` it still counts in the

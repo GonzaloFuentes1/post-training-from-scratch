@@ -21,8 +21,12 @@ backward pass:
 
     \mathcal{L} = \frac{1}{N_{\mathrm{global}}} \sum_{b} \sum_{t \in b} \ell_t .
 
-In distributed training ``N_global`` must additionally be all-reduced across
-data-parallel ranks.
+In data-parallel training ``N_global`` is the token count summed over all
+ranks (all-reduced before the first backward pass). DDP then *averages*
+gradients across the ``world_size`` ranks, so dividing each rank's summed
+loss by ``N_global`` alone shrinks the gradient by a factor ``world_size``.
+Either multiply the loss by ``world_size`` or, equivalently, have each rank
+pass ``num_target_tokens = N_global / world_size``.
 """
 
 from __future__ import annotations
@@ -42,7 +46,7 @@ def causal_lm_loss(
     logits: Tensor,
     labels: Tensor,
     *,
-    num_target_tokens: int | None = None,
+    num_target_tokens: float | None = None,
     ignore_index: int = -100,
 ) -> Tensor:
     """Summed token cross-entropy divided by ``num_target_tokens``.
@@ -53,7 +57,8 @@ def causal_lm_loss(
         num_target_tokens: Normaliser. Pass the global count from
             :func:`count_target_tokens` when accumulating gradients; when
             ``None`` the local count is used, which is only correct for a
-            single micro-batch.
+            single micro-batch. Under DDP pass ``N_global / world_size``
+            (see the module docstring), which need not be an integer.
     """
     loss_sum = F.cross_entropy(
         logits.flatten(0, 1), labels.flatten(), ignore_index=ignore_index, reduction="sum"
