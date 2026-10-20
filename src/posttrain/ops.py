@@ -3,7 +3,7 @@
 Every objective in this package reduces over a ragged set of tokens stored in a
 padded tensor. Getting the denominator or the mask of that reduction wrong is
 the most common silent bug in post-training code: the loss still decreases, it
-just optimises a different objective. These helpers exist so that the masking
+just optimizes a different objective. These helpers exist so that the masking
 logic is written and tested once.
 """
 
@@ -64,7 +64,7 @@ def token_logprobs(logits: Tensor, targets: Tensor, mask: Tensor | None = None) 
 
     The value is computed as ``logit[target] - logsumexp(logits)`` rather than
     by gathering from ``log_softmax(logits)``. Both are exact, but the former
-    never materialises a second ``[..., vocab]`` tensor of log-probabilities,
+    never materializes a second ``[..., vocab]`` tensor of log-probabilities,
     which dominates memory for large vocabularies.
 
     Positions where ``mask`` is false return exactly 0 and their logits

@@ -1,4 +1,4 @@
-"""Offline preference optimisation objectives (DPO, cDPO, IPO, SimPO)."""
+"""Offline preference optimization objectives (DPO, cDPO, IPO, SimPO)."""
 
 from posttrain.preference.logprobs import sequence_logprobs
 from posttrain.preference.losses import (

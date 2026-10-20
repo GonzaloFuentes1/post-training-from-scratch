@@ -100,7 +100,7 @@ def test_all_estimators_vanish_and_are_stationary_at_identical_policies(estimato
     (grad,) = torch.autograd.grad(value.sum(), logp)
 
     assert torch.equal(value.detach(), torch.zeros_like(value))
-    if estimator != "k1":  # d k1 / d logp = 1: k1 is not minimised pointwise at equality.
+    if estimator != "k1":  # d k1 / d logp = 1: k1 is not minimized pointwise at equality.
         torch.testing.assert_close(grad, torch.zeros_like(grad))
 
 

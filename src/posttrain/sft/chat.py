@@ -10,7 +10,7 @@ The template is ChatML-like::
 
     <|im_start|>{role}\\n{content}<|im_end|>\\n
 
-and is tokenised with a byte-level tokenizer plus a few special tokens, which is
+and is tokenized with a byte-level tokenizer plus a few special tokens, which is
 enough to exercise every masking rule without depending on a real tokenizer.
 """
 
