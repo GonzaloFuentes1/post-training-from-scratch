@@ -51,6 +51,8 @@ select = [
     "RUF", # ruff-specific
     "N",   # pep8-naming
 ]
+# `import torch.nn.functional as F` is the PyTorch convention.
+ignore = ["N812"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N802", "N806"]
@@ -59,3 +61,5 @@ select = [
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 xfail_strict = true
+# torch probes for numpy at import time; nothing here needs it.
+filterwarnings = ["ignore:Failed to initialize NumPy:UserWarning"]
