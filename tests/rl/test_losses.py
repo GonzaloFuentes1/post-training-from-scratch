@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from posttrain.ops import token_logprobs
-from posttrain.rl import PolicyLossConfig, policy_gradient_loss
+from posttrain.rl import PolicyLossConfig, aggregate_token_losses, policy_gradient_loss
 
 MAX_TOKENS = 12
 
@@ -257,3 +257,64 @@ def test_kl_penalty_requires_reference_and_constant_requires_budget():
         policy_gradient_loss(logp, old_logp, adv, mask, PolicyLossConfig.grpo())
     with pytest.raises(ValueError, match="max_tokens"):
         policy_gradient_loss(logp, old_logp, adv, mask, PolicyLossConfig.dr_grpo())
+
+
+MICRO_BATCHES = [[0], [1, 2], [3]]  # uneven split of the 4 responses in _batch
+
+
+def _accumulated(cfg, logp, old_logp, ref_logp, adv, mask, **counts):
+    total = torch.zeros((), dtype=logp.dtype)
+    for rows in MICRO_BATCHES:
+        out = policy_gradient_loss(
+            logp[rows],
+            old_logp[rows],
+            adv[rows],
+            mask[rows],
+            cfg,
+            ref_logp=ref_logp[rows],
+            max_tokens=MAX_TOKENS,
+            **counts,
+        )
+        total = total + out.loss
+    return total
+
+
+@pytest.mark.parametrize("name", CONFIGS)
+def test_gradient_accumulation_with_global_counts_equals_full_batch(name):
+    cfg = CONFIGS[name]
+    logp, old_logp, ref_logp, adv, mask = _batch(seed=11, requires_grad=True)
+    full = policy_gradient_loss(
+        logp, old_logp, adv, mask, cfg, ref_logp=ref_logp, max_tokens=MAX_TOKENS
+    ).loss
+    (full_grad,) = torch.autograd.grad(full, logp)
+
+    counts = {"num_sequences": mask.shape[0], "num_tokens": int(mask.sum())}
+    accumulated = _accumulated(cfg, logp, old_logp, ref_logp, adv, mask, **counts)
+    (acc_grad,) = torch.autograd.grad(accumulated, logp)
+
+    assert accumulated.item() == pytest.approx(full.item(), abs=1e-12)
+    torch.testing.assert_close(acc_grad, full_grad, atol=1e-12, rtol=0)
+
+
+@pytest.mark.parametrize("normalization", ["sequence", "token", "constant"])
+def test_gradient_accumulation_with_local_counts_is_wrong(normalization):
+    """Averaging per-micro-batch losses is a mean of means, as in SFT."""
+    cfg = PolicyLossConfig(normalization=normalization)
+    logp, old_logp, ref_logp, adv, mask = _batch(seed=11, requires_grad=True)
+    full = policy_gradient_loss(
+        logp, old_logp, adv, mask, cfg, ref_logp=ref_logp, max_tokens=MAX_TOKENS
+    ).loss
+
+    mean_of_means = _accumulated(cfg, logp, old_logp, ref_logp, adv, mask) / len(MICRO_BATCHES)
+
+    assert abs(mean_of_means.item() - full.item()) > 1e-3
+
+
+def test_empty_response_counts_in_default_divisor_unless_num_sequences_is_given():
+    per_token_loss = torch.tensor([[1.0, 3.0], [5.0, 7.0]], dtype=torch.float64)
+    mask = torch.tensor([[True, True], [False, False]])
+
+    assert aggregate_token_losses(per_token_loss, mask, "sequence").item() == 1.0
+    assert aggregate_token_losses(per_token_loss, mask, "sequence", num_sequences=1).item() == 2.0
+    with pytest.raises(ValueError, match="num_tokens must be positive"):
+        aggregate_token_losses(per_token_loss, mask, "token", num_tokens=0)

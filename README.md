@@ -172,9 +172,12 @@ detail, including the sequence-level case.
   hand-built inputs. Preference losses return one value per pair and leave
   the batch reduction to the caller.
 - **The reduction is part of the objective.** Normalisation is an explicit
-  argument (`normalization`, `num_target_tokens`, `max_tokens`) rather than a
-  hidden `.mean()`, because that denominator is where GRPO, DAPO and
-  Dr.GRPO differ and where gradient accumulation goes wrong.
+  argument (`normalization`, `max_tokens`, and the global counts
+  `num_target_tokens` for SFT and `num_tokens` / `num_sequences` for RL)
+  rather than a hidden `.mean()`, because that denominator is where GRPO,
+  DAPO and Dr.GRPO differ and where gradient accumulation goes wrong. Under
+  accumulation every micro-batch is divided by the count of the whole
+  optimizer batch and the micro-batch losses are summed.
 - **Masks select, they do not multiply.** Masked positions are removed with
   `torch.where`, so `-inf` or NaN padding in a tensor that is passed in
   cannot leak into the value or into that tensor's gradient. `where` does
@@ -213,6 +216,7 @@ suite on Python 3.11 and 3.12). Highlights:
 | conservative DPO is stationary at $m^*$; IPO penalises overshooting its target; SimPO equals DPO on average log-probs for any reference that cannot tell the pair apart, and is invariant to repeating a response | `tests/preference/test_losses.py` |
 | packed loss and all parameter gradients of a float64 transformer equal the unpacked sum (atol 1e-10); a plain causal mask or no position reset breaks this | `tests/sft/test_packed_equivalence.py` |
 | token-weighted gradient accumulation equals the full batch (atol 1e-12); the naive mean of micro-batch means is off by more than 10% | `tests/sft/test_grad_accumulation.py` |
+| RL losses accumulated over uneven micro-batches with global `num_tokens` / `num_sequences` equal the full-batch loss and gradient (atol 1e-12) for every normalization; averaging micro-batch losses does not | `tests/rl/test_losses.py` |
 | first-fit-decreasing stays within $\frac{11}{9}\mathrm{OPT} + \frac{6}{9}$ bins against an exhaustive optimum | `tests/sft/test_packing.py` |
 | chat loss masks select exactly the assistant content and end markers | `tests/sft/test_chat.py` |
 
