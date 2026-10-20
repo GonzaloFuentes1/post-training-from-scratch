@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "post-training-from-scratch: tested reference implementations of LLM post-training objectives"
+abstract: >-
+  From-scratch PyTorch reference implementations of LLM post-training
+  objectives (SFT packing and masking, DPO, IPO, SimPO, GRPO, DAPO and
+  Dr.GRPO), each covered by invariant tests.
+authors:
+  - family-names: Fuentes
+    given-names: Gonzalo
+    affiliation: CENIA
+license: MIT
+version: 0.1.0
+repository-code: "https://github.com/GonzaloFuentes1/post-training-from-scratch"
+keywords:
+  - llm
+  - post-training
+  - rlhf
+  - dpo
+  - grpo
+  - sft
