@@ -53,6 +53,26 @@ def test_prompt_and_padding_logits_do_not_matter():
     )
 
 
+@pytest.mark.parametrize("junk", [float("-inf"), float("nan")])
+@pytest.mark.parametrize("average", [False, True])
+def test_non_finite_prompt_and_padding_logits_give_finite_gradients(junk, average):
+    logits, labels, mask = _batch(seed=3)
+    clean = logits.clone().requires_grad_(True)
+    sequence_logprobs(clean, labels, mask, average=average).sum().backward()
+
+    dirty = torch.where(mask.unsqueeze(-1), logits, torch.full_like(logits, junk))
+    dirty.requires_grad_(True)
+    value = sequence_logprobs(dirty, labels, mask, average=average)
+    value.sum().backward()
+
+    torch.testing.assert_close(
+        value.detach(), sequence_logprobs(logits, labels, mask, average=average)
+    )
+    assert dirty.grad is not None
+    assert torch.isfinite(dirty.grad).all()
+    assert torch.equal(dirty.grad, clean.grad)
+
+
 def test_gradcheck():
     logits, labels, mask = _batch(seed=2)
     logits.requires_grad_(True)

@@ -161,8 +161,17 @@ variance).
   hidden `.mean()`, because that denominator is where GRPO, DAPO and
   Dr.GRPO differ and where gradient accumulation goes wrong.
 - **Masks select, they do not multiply.** Masked positions are removed with
-  `torch.where`, so padding that holds `-inf` or NaN cannot leak NaNs into
-  values or gradients. Tests feed `-inf` into every masked slot.
+  `torch.where`, so `-inf` or NaN padding in a tensor that is passed in
+  cannot leak into the value or into that tensor's gradient. `where` does
+  not cut the graph, though: if the op that *produced* the padding has a
+  non-finite derivative there (`log(0)`, `logsumexp` over a row of `-inf`),
+  its backward still computes `0 * inf = NaN`. Such values have to be
+  replaced before that op, which `token_logprobs` does for masked logit
+  rows. Tests put `-inf` into masked log-probs of the RL loss; `-inf`, `inf`
+  and NaN into masked logit rows of `token_logprobs`; `-inf` and NaN into
+  those of `sequence_logprobs`; and `-inf` into masked logit rows on the
+  logits-to-RL-loss path. Each requires finite gradients equal to the clean
+  ones.
 - **Every docstring explains why.** For example why the last token of a
   packed document has no target, why padded queries attend to themselves,
   and why `logsumexp` is used to gather log-probs.

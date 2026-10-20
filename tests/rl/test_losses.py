@@ -3,6 +3,7 @@ import math
 import pytest
 import torch
 
+from posttrain.ops import token_logprobs
 from posttrain.rl import PolicyLossConfig, policy_gradient_loss
 
 MAX_TOKENS = 12
@@ -120,6 +121,37 @@ def test_prompt_and_pad_tokens_have_no_effect(name):
     assert torch.equal(grad[~mask], torch.zeros_like(grad[~mask]))
     assert torch.equal(junk_grad, grad)
     assert torch.isfinite(perturbed.per_token_loss).all()
+
+
+@pytest.mark.parametrize("name", CONFIGS)
+def test_non_finite_masked_logits_give_finite_gradients_end_to_end(name):
+    """Logits -> token_logprobs -> loss with -inf rows at prompt and pad positions."""
+    cfg = CONFIGS[name]
+    gen = torch.Generator().manual_seed(9)
+    _, _, _, adv, mask = _batch(seed=9)
+    logits = torch.randn(*mask.shape, 7, generator=gen, dtype=torch.float64)
+    targets = torch.randint(0, 7, mask.shape, generator=gen)
+    targets = torch.where(mask, targets, torch.full_like(targets, -100))
+    with torch.no_grad():
+        old_logp = token_logprobs(logits + 0.1, targets, mask)
+        ref_logp = token_logprobs(logits - 0.1, targets, mask)
+
+    def loss_and_grad(x):
+        x = x.clone().requires_grad_(True)
+        logp = token_logprobs(x, targets, mask)
+        out = policy_gradient_loss(
+            logp, old_logp, adv, mask, cfg, ref_logp=ref_logp, max_tokens=MAX_TOKENS
+        )
+        (grad,) = torch.autograd.grad(out.loss, x)
+        return out.loss, grad
+
+    base_loss, base_grad = loss_and_grad(logits)
+    dirty = torch.where(mask.unsqueeze(-1), logits, torch.full_like(logits, -math.inf))
+    loss, grad = loss_and_grad(dirty)
+
+    assert loss.item() == base_loss.item()
+    assert torch.isfinite(grad).all()
+    assert torch.equal(grad, base_grad)
 
 
 def _on_policy_token_weights(cfg: PolicyLossConfig, advantages, lengths, seq_len=8):

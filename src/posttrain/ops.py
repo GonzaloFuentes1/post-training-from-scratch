@@ -26,8 +26,16 @@ def masked_sum(values: Tensor, mask: Tensor, dim: Dim = None) -> Tensor:
     ``torch.where`` is used instead of ``values * mask`` because padded
     positions may legitimately hold non-finite numbers (for example ``-inf``
     log-probabilities of a pad token). ``inf * 0`` is NaN and would poison both
-    the value and the gradient; selecting with ``where`` keeps the masked
-    positions out of the computation graph entirely.
+    the value and the gradient; selecting with ``where`` gives masked positions
+    a gradient of exactly 0 with respect to ``values``.
+
+    That protection stops at ``values``. ``where`` does not remove the masked
+    branch from the autograd graph: the zero gradient still flows back into
+    whatever op produced the masked entries, and if that op's local derivative
+    is infinite or NaN there (``log`` at 0, ``logsumexp`` over a row of
+    ``-inf``), its backward computes ``0 * inf = NaN``. Non-finite values must
+    therefore be replaced *before* the op that would create them (the "double
+    ``where``" pattern), as :func:`token_logprobs` does for masked logits.
     """
     _check_mask(values, mask)
     selected = torch.where(mask.bool(), values, torch.zeros_like(values))
@@ -59,9 +67,13 @@ def token_logprobs(logits: Tensor, targets: Tensor, mask: Tensor | None = None) 
     never materialises a second ``[..., vocab]`` tensor of log-probabilities,
     which dominates memory for large vocabularies.
 
-    Positions where ``mask`` is false return exactly 0 and receive no gradient.
-    Their target ids may be arbitrary (for example ``-100``), so callers do
-    not need to sanitise padding before calling this function.
+    Positions where ``mask`` is false return exactly 0 and their logits
+    receive a gradient of exactly 0. Their target ids may be arbitrary (for
+    example ``-100``) and their logits may be non-finite (a row of ``-inf`` or
+    NaN): masked rows are replaced by zeros *before* ``gather`` and
+    ``logsumexp``, so no non-finite value reaches an op whose backward would
+    turn it into ``0 * inf = NaN``. Callers therefore do not need to sanitize
+    padding before calling this function.
     """
     if logits.shape[:-1] != targets.shape:
         raise ValueError(
@@ -73,9 +85,13 @@ def token_logprobs(logits: Tensor, targets: Tensor, mask: Tensor | None = None) 
         safe_targets = targets
     else:
         _check_mask(targets, mask)
-        safe_targets = torch.where(mask.bool(), targets, torch.zeros_like(targets))
+        mask = mask.bool()
+        safe_targets = torch.where(mask, targets, torch.zeros_like(targets))
+        # Select before reducing: a masked -inf/NaN row would otherwise make the
+        # backward of logsumexp produce NaN even though its output is discarded.
+        logits = torch.where(mask.unsqueeze(-1), logits, torch.zeros_like(logits))
     picked = logits.gather(-1, safe_targets.unsqueeze(-1)).squeeze(-1)
     logp = picked - torch.logsumexp(logits, dim=-1)
     if mask is None:
         return logp
-    return torch.where(mask.bool(), logp, torch.zeros_like(logp))
+    return torch.where(mask, logp, torch.zeros_like(logp))
