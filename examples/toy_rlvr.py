@@ -6,13 +6,15 @@ correct. It is then trained with a group-relative policy-gradient objective
 from ``posttrain.rl`` against an exact-match reward, with no access to the
 reference answers except through that 0/1 reward.
 
-The script writes ``results/toy_rlvr.json`` with the per-step training reward,
-held-out greedy accuracy, seed, wall time and hardware. Run::
+The script writes a JSON report (``--out``, default ``results/toy_rlvr.json``)
+with the per-step training reward, held-out greedy accuracy, seed, wall time
+and hardware. Run::
 
     python examples/toy_rlvr.py --seed 0
 
-Everything runs on CPU in a few minutes. This is a sanity check that the
-objectives produce a learning signal end to end, not a benchmark.
+One run took 23 to 28 s on the CPU described in the README, longer when the
+machine is busy. This is a sanity check that the objectives produce a
+learning signal end to end, not a benchmark.
 """
 
 from __future__ import annotations
