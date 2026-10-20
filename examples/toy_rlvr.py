@@ -25,14 +25,23 @@ import platform
 import random
 import sys
 import time
+import warnings
 from pathlib import Path
 
-import torch
+# torch probes for NumPy at import time and warns if it is missing; nothing
+# here needs NumPy, so keep the first line of output about the run itself.
+warnings.filterwarnings("ignore", message="Failed to initialize NumPy", category=UserWarning)
 
-from posttrain.models import TinyGPT, TinyGPTConfig
-from posttrain.ops import token_logprobs
-from posttrain.rl import PolicyLossConfig, group_relative_advantages, policy_gradient_loss
-from posttrain.sft import causal_lm_loss
+import torch  # noqa: E402
+
+from posttrain.models import TinyGPT, TinyGPTConfig  # noqa: E402
+from posttrain.ops import token_logprobs  # noqa: E402
+from posttrain.rl import (  # noqa: E402
+    PolicyLossConfig,
+    group_relative_advantages,
+    policy_gradient_loss,
+)
+from posttrain.sft import causal_lm_loss  # noqa: E402
 
 DIGITS = "0123456789"
 PLUS, EQUALS, EOS, PAD = 10, 11, 12, 13
@@ -143,7 +152,8 @@ def hardware() -> dict[str, object]:
     }
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> dict[str, object]:
+    """Run SFT then RL, write the JSON report to ``--out`` and return it."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--recipe", choices=sorted(RECIPES), default="dr_grpo")
@@ -158,7 +168,8 @@ def main() -> None:
     parser.add_argument("--eval-every", type=int, default=25)
     parser.add_argument("--num-eval", type=int, default=500)
     parser.add_argument("--out", type=Path, default=Path("results/toy_rlvr.json"))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    command = sys.argv if argv is None else ["examples/toy_rlvr.py", *argv]
 
     torch.manual_seed(args.seed)
     rng = random.Random(args.seed)
@@ -231,7 +242,7 @@ def main() -> None:
     rl_time = time.perf_counter() - rl_start
 
     result = {
-        "command": " ".join(["python", *sys.argv]),
+        "command": " ".join(["python", *command]),
         "seed": args.seed,
         "args": {k: v.as_posix() if isinstance(v, Path) else v for k, v in vars(args).items()},
         "model": vars(cfg),
@@ -249,6 +260,7 @@ def main() -> None:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {args.out} in {result['total_wall_time_s']} s")
+    return result
 
 
 if __name__ == "__main__":
